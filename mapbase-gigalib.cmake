@@ -82,8 +82,8 @@ function(target_mapbase_gigalib target)
 	endif ()
 	
 	configure_file(
-		"${GIGALIB_DIR}/config.h.in"
-		"${CMAKE_BINARY_DIR}/config.h"
+		"${GIGALIB_DIR}/gigalib_config.h.in"
+		"${CMAKE_BINARY_DIR}/gigalib_config.h"
 	)
 
 	target_sources(
