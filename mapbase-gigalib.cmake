@@ -80,11 +80,6 @@ function(target_mapbase_gigalib target)
 	if (UNIX AND CMAKE_COMPILER_IS_GNUCC)
 	  set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=default" )
 	endif ()
-	
-	configure_file(
-		"${GIGALIB_DIR}/gigalib_config.h.in"
-		"${CMAKE_BINARY_DIR}/gigalib_config.h"
-	)
 
 	target_sources(
 		${target} PRIVATE
