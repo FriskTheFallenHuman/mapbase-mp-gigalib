@@ -1,0 +1,31 @@
+#ifndef _GIGALIB_CONFIG_H__
+#define _GIGALIB_CONFIG_H__
+
+// Don't define this if BLACKLISTS is off
+#ifdef BLACKLISTS
+	// A valid https URL that points to a .txt document that clients will download every game launch
+	// containing ip address that they will be prevented from connecting to
+	// Format:
+	/*
+	# comment
+	127.0.0.1
+	127.0.0.2
+	127.0.0.3
+	127.0.0.4
+	*/
+	#define BLACKLISTS_URL @BLACKLISTS_URL@
+
+	// A URL for your users to visit to report a server being incorrectly marked as malicious
+	#define BLACKLISTS_CONTACT_URL @BLACKLISTS_CONTACT_URL@
+#endif // BLACKLISTS
+
+// Don't define this if SENTRY is off
+#ifdef SENTRY
+	// A valid https URL that points to a document containing a valid Sentry.IO DSN (including self hosted)
+	// This is literally a text page with the url of your sentry instance as the content, NOT the actual url of your sentry instance wholesale
+	// This is so you can change this value on the fly without recompiling your entire project
+	#define SENTRY_URL                    @SENTRY_URL@
+	#define SENTRY_PRIVACY_POLICY_URL     @SENTRY_PRIVACY_POLICY_URL@
+#endif // SENTRY
+
+#endif // _GIGALIB_CONFIG_H__
