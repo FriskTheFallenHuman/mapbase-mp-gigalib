@@ -2,6 +2,49 @@
 
 include_guard(GLOBAL)
 
+# It's important to include $GAMENAME in the generated_proto directory
+# to avoid race conditions when multiple games are in one solution.
+#set(GENERATED_PROTO_DIR	"${SRCDIR}/thirdparty/gigalib/src/networking")
+
+#Built a .proto file and add the resulting C++ to the target.
+macro( TargetBuildAndAddProto TARGET_NAME PROTO_FILE PROTO_OUTPUT_FOLDER )
+    set(PROTO_FILENAME)
+
+	set(PROTO_COMPILER ${SRCDIR}/thirdparty/gigalib/bin/protobuf/protoc.exe)
+
+	#This is a target added in /thirdparty/protobuf-2.3.0
+	if( UNIX AND NOT APPLE )
+		set(PROTO_COMPILER ${SRCDIR}/thirdparty/gigalib/bin/protobuf/protoc)
+	endif()
+	
+	target_link_libraries( ${TARGET_NAME} PRIVATE
+		"$<IF:$<CONFIG:Debug>,$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libprotobuf.a>$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/bin/libprotobufd.lib>,$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libprotobuf.a>$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/bin/libprotobuf.lib>>"
+	)
+	
+	target_include_directories(${TARGET_NAME} PRIVATE ${SRCDIR}/thirdparty/gigalib/src/networking)
+	target_include_directories(${TARGET_NAME} PRIVATE ${SRCDIR}/thirdparty/gigalib/src/protobuf/src)
+	target_include_directories(${TARGET_NAME} PRIVATE ${SRCDIR}/thirdparty/gigalib/src/networking)
+
+	target_compile_definitions(${TARGET_NAME} PRIVATE "_HAS_EXCEPTIONS=0")
+
+    get_filename_component(PROTO_FILENAME ${PROTO_FILE} NAME_WLE) #name without any extensions
+
+    add_custom_command(
+            OUTPUT "${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc"
+                   "${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.h"
+            COMMAND ${PROTO_COMPILER} --cpp_out=. --proto_path=${SRCDIR}/thirdparty/gigalib/src/protobuf/src --proto_path=${SRCDIR}/thirdparty/gigalib/src/networking ${PROTO_FILE}
+            DEPENDS ${PROTO_FILE} ${PROTO_COMPILER}
+            WORKING_DIRECTORY ${PROTO_OUTPUT_FOLDER}
+            COMMENT "Running protoc compiler on ${PROTO_FILE} - output (${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc)"
+            VERBATIM
+    )
+
+    #add the output folder in the include path.
+    target_include_directories(${TARGET_NAME} PRIVATE ${PROTO_OUTPUT_FOLDER})
+    target_sources(${TARGET_NAME} PRIVATE ${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc ${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.h)
+	set_source_files_properties(${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.cc ${PROTO_OUTPUT_FOLDER}/${PROTO_FILENAME}.pb.h PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endmacro()
+
 set(GIGALIB_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(
 	GIGALIB_SOURCE_FILES
@@ -19,6 +62,12 @@ set(
 	"${GIGALIB_DIR}/src/memy/memytools.h"
 	"${GIGALIB_DIR}/src/memy/memytools.cpp"
 	"${GIGALIB_DIR}/src/memy/vtblhook.h"
+	
+    # networking
+	"${GIGALIB_DIR}/src/networking/networking.cpp"
+	"${GIGALIB_DIR}/src/networking/networking.h"
+	"${GIGALIB_DIR}/src/networking/messages.cpp"
+	"${GIGALIB_DIR}/src/networking/messages.h"
 
     # engine hacks
 	"${GIGALIB_DIR}/src/engine_hacks/engine_detours.cpp"
@@ -55,25 +104,9 @@ set(
 	"$<$<BOOL:${IS_WINDOWS}>:${GIGALIB_DIR}/src/sdkCURL/vendored/urlapi.h>"
 	"$<$<BOOL:${IS_WINDOWS}>:${GIGALIB_DIR}/src/sdkCURL/vendored/websockets.h>"
 
-    # sdknanopb
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_decode.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.h"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.h"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb.h"
-
 	# speedykv
 	"${GIGALIB_DIR}/src/speedykv/speedykv.cpp"
 	"${GIGALIB_DIR}/src/speedykv/speedykv.h"
-)
-
-set_source_files_properties(
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_decode.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.c"
-	"${GIGALIB_DIR}/src/speedykv/speedykv.cpp"
-	PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 )
 
 function(target_mapbase_gigalib target)
@@ -95,17 +128,11 @@ function(target_mapbase_gigalib target)
 		"${GIGALIB_DIR}/src/polyhook"
 		"${GIGALIB_DIR}/src/qol"
 		"${GIGALIB_DIR}/src/sdkCURL"
-		"${GIGALIB_DIR}/src/sdknanopb"
 		"${GIGALIB_DIR}/src/sdksentry"
 		"${GIGALIB_DIR}/src/speedykv"
-		"$<$<OR:${SDL},${DEDICATED}>:${SRCDIR}/thirdparty/SDL2>"
+		#"$<$<OR:${SDL},${DEDICATED}>:${SRCDIR}/thirdparty/SDL2>"
 	)
-	
-	target_link_directories(
-		${target} PRIVATE
-		"${GIGALIB_DIR}/bin"
-	)
-	
+
 	target_link_libraries(
 		${target} PRIVATE
 
@@ -121,37 +148,51 @@ function(target_mapbase_gigalib target)
 		#"$<${IS_LINUX}:${LIBCOMMON}/libcurl${STATIC_LIB_EXT}>"
 		#"$<${IS_LINUX}:${LIBCOMMON}/libcurlssl${STATIC_LIB_EXT}>"
 		#"$<${IS_LINUX}:${LIBCOMMON}/libssl${STATIC_LIB_EXT}>"
-		
-		$<${IS_WINDOWS}:sentry>
-		$<${IS_WINDOWS}:libcurl>
-		$<${IS_WINDOWS}:fmt>
 
         # sentry
-		$<${IS_LINUX}:libbreakpad_client>
-		$<${IS_LINUX}:libsentry>
-        # bin patching
-		$<${IS_LINUX}:libPolyHook_2>
-		$<${IS_LINUX}:libZydis>
-        # fmt
-		$<${IS_LINUX}:libfmt>
-        # sdl
-		$<${IS_LINUX}:SDL2>
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libbreakpad_client.a>"
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libsentry.a>"		
+		"$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/bin/sentry.lib>"
 
         # curl
-		#$<${IS_LINUX}:libcurl>
-		#$<${IS_LINUX}:libbrotlicommon-static>
-		#$<${IS_LINUX}:libbrotlidec-static>
-		#$<${IS_LINUX}:libbrotlienc-static>
-		#$<${IS_LINUX}:libcrypto>
-		#$<${IS_LINUX}:libnghttp2>
-		#$<${IS_LINUX}:libssh2>
-		#$<${IS_LINUX}:libssl>
-		#$<${IS_LINUX}:libz>
-		#$<${IS_LINUX}:libzstd>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libcurl.a>
+		"$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/bin/libcurl.lib>"
+
+        # fmt
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libfmt.a>"
+		"$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/bin/fmt.lib>"
+
+        # bin patching
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libPolyHook_2.a>"
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libZydis.a>"
+		"$<IF:$<CONFIG:Debug>,$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/src/polyhook/bin/debug/PolyHook_2.lib>,$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/src/polyhook/bin/release/PolyHook_2.lib>>"
+		"$<IF:$<CONFIG:Debug>,$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/src/polyhook/bin/debug/Zydis.lib>,$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/src/polyhook/bin/release/Zydis.lib>>"
+
+        # sdl
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libSDL2.a>"
+
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libbrotlicommon-static.a>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libbrotlidec-static.a>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libbrotlienc-static.a>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libcrypto.a>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libnghttp2.a>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libssh2.a>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libssl.a>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libz.a>
+		#$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libzstd.a>
 	)
 
 	target_compile_definitions(
 		${target} PRIVATE
+		
+		# Enables the Mapbase integration
+		$<$<BOOL:${MAPBASE_GIGALIB}>:MAPBASE_GIGALIB>
+		
+		# Enable modern CURL
 		$<$<BOOL:${IS_WINDOWS}>:CURL_STATICLIB>
+		
+        # Net stuff
+        # PROTOBUF_USE_DLLS
+        _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
 	)
 endfunction()

@@ -676,6 +676,7 @@ void KeyValue::BuildData(char*& destBuffer)
 // Copies memory and shifts the inputs
 void CopyAndShift(char*& dest, char* src, size_t& destLength, size_t srcLength)
 {
+	#undef min
 	size_t minLength = std::min(destLength, srcLength);
 	memcpy(dest, src, minLength);
 	destLength -= minLength;

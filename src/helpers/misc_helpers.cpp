@@ -315,19 +315,19 @@ bool checkWine()
 #endif
 }
 
-// Hackily grabbed from other places in the sdk since this is for some reason undefined in places
-const char* HACK_COM_GetModDirectory()
+// need to clean this up
+const char *HACK_COM_GetModDirectory()
 {
     static char modDir[MAX_PATH];
-    if (Q_strlen(modDir) == 0)
+    if ( Q_strlen( modDir ) == 0 )
     {
-        const char* gamedir = CommandLine()->ParmValue("-game", CommandLine()->ParmValue("-defaultgamedir", "hl2"));
-        Q_strncpy(modDir, gamedir, sizeof(modDir));
-        if (strchr(modDir, '/') || strchr(modDir, '\\'))
+        const char *gamedir = CommandLine()->ParmValue("-game", CommandLine()->ParmValue( "-defaultgamedir", "hl2" ) );
+        Q_strncpy( modDir, gamedir, sizeof(modDir) );
+        if ( strchr( modDir, '/' ) || strchr( modDir, '\\' ) )
         {
-            Q_StripLastDir(modDir, sizeof(modDir));
-            int dirlen = Q_strlen(modDir);
-            Q_strncpy(modDir, gamedir + dirlen, sizeof(modDir) - dirlen);
+            Q_StripLastDir( modDir, sizeof(modDir) );
+            int dirlen = Q_strlen( modDir );
+            Q_strncpy( modDir, gamedir + dirlen, sizeof(modDir) - dirlen );
         }
     }
 
