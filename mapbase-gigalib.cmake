@@ -56,12 +56,12 @@ set(
 	"$<$<BOOL:${IS_WINDOWS}>:${GIGALIB_DIR}/src/sdkCURL/vendored/websockets.h>"
 
     # sdknanopb
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_decode.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.h"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.h"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb.h"
+	#"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.c"
+	#"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_decode.c"
+	#"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.c"
+	#"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.h"
+	#"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.h"
+	#"${GIGALIB_DIR}/src/sdknanopb/vendored/pb.h"
 
 	# speedykv
 	"${GIGALIB_DIR}/src/speedykv/speedykv.cpp"
@@ -69,9 +69,9 @@ set(
 )
 
 set_source_files_properties(
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_decode.c"
-	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.c"
+#	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_common.c"
+#	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_decode.c"
+#	"${GIGALIB_DIR}/src/sdknanopb/vendored/pb_encode.c"
 	"${GIGALIB_DIR}/src/speedykv/speedykv.cpp"
 	PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 )
@@ -98,12 +98,7 @@ function(target_mapbase_gigalib target)
 		"${GIGALIB_DIR}/src/sdknanopb"
 		"${GIGALIB_DIR}/src/sdksentry"
 		"${GIGALIB_DIR}/src/speedykv"
-		"$<$<OR:${SDL},${DEDICATED}>:${SRCDIR}/thirdparty/SDL2>"
-	)
-	
-	target_link_directories(
-		${target} PRIVATE
-		"${GIGALIB_DIR}/bin"
+		#"$<$<OR:${SDL},${DEDICATED}>:${SRCDIR}/thirdparty/SDL2>"
 	)
 	
 	target_link_libraries(
@@ -121,24 +116,30 @@ function(target_mapbase_gigalib target)
 		#"$<${IS_LINUX}:${LIBCOMMON}/libcurl${STATIC_LIB_EXT}>"
 		#"$<${IS_LINUX}:${LIBCOMMON}/libcurlssl${STATIC_LIB_EXT}>"
 		#"$<${IS_LINUX}:${LIBCOMMON}/libssl${STATIC_LIB_EXT}>"
-		
-		$<${IS_WINDOWS}:sentry>
-		$<${IS_WINDOWS}:libcurl>
-		$<${IS_WINDOWS}:fmt>
 
-        # sentry
-		$<${IS_LINUX}:libbreakpad_client>
-		$<${IS_LINUX}:libsentry>
-        # bin patching
-		$<${IS_LINUX}:libPolyHook_2>
-		$<${IS_LINUX}:libZydis>
-        # fmt
-		$<${IS_LINUX}:libfmt>
-        # sdl
-		$<${IS_LINUX}:SDL2>
+        # sentry		
+		"$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/bin/sentry.lib>"
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libbreakpad_client.so>"
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libsentry.so>"
 
         # curl
 		#$<${IS_LINUX}:libcurl>
+		"$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/bin/libcurl.lib>"
+
+        # fmt
+		"$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/bin/fmt.lib>"
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libfmt.so>"
+
+        # bin patching
+		"$<IF:$<CONFIG:Debug>,$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/src/polyhook/bin/debug/PolyHook_2.lib>,$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/src/polyhook/bin/release/PolyHook_2.lib>>"
+		"$<IF:$<CONFIG:Debug>,$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/src/polyhook/bin/debug/Zydis.lib>,$<${IS_WINDOWS}:${SRCDIR}/thirdparty/gigalib/src/polyhook/bin/release/Zydis.lib>>"
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libPolyHook_2.so>"
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libZydis.so>"
+
+        # sdl
+		"$<${IS_LINUX}:${SRCDIR}/thirdparty/gigalib/bin/libSDL2.so>"
+
+
 		#$<${IS_LINUX}:libbrotlicommon-static>
 		#$<${IS_LINUX}:libbrotlidec-static>
 		#$<${IS_LINUX}:libbrotlienc-static>
